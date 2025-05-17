@@ -1,0 +1,110 @@
+class PriorityQueue:
+
+    def __init__(self, comp_fn):
+        self._comp_fn = comp_fn
+        self._data = []
+
+    def push(self, value):
+        if len(self._data) == 0:
+            self._data.append(value)
+            return
+        index = 0
+        while index < len(self._data):
+            if self._comp_fn(value, self._data[index]):
+                self._data.insert(index, value)
+                return
+            index = index + 1
+        self._data.append(value)
+
+    def front(self):
+        return self._data[0]
+
+    def pop(self):
+        self._data.pop(0)
+
+    def size(self):
+        return len(self._data)
+
+    def __str__(self):
+        s = "["
+        for item in self._data:
+            s = s + str(item) + ","
+        s = s + "]"
+        return s
+
+class StockOrder:
+
+    def __init__(self, order_type, trader_id, amount, price):
+        self.order_type = order_type
+        self.trader_id = trader_id
+        self.amount = amount
+        self.price = price
+
+    def __str__(self):
+        return "(" + self.order_type + ", " + self.trader_id + ", " + str(self.amount) + ", " + str(self.price) + ")"
+
+
+def lower_is_better(order1: StockOrder, order2: StockOrder):
+    return order1.price < order2.price
+def higher_is_better(order1: StockOrder, order2: StockOrder):
+    return order1.price > order2.price
+
+class StockMarket:
+
+    def __init__(self):
+        self._buy_orders = PriorityQueue(higher_is_better)
+        self._sell_orders = PriorityQueue(lower_is_better)
+
+    def place(self, order):
+
+        if order.order_type == "buy":
+            while self._sell_orders.size() > 0 and order.amount > 0:
+                sell_order = self._sell_orders.front()
+                if sell_order.price <= order.price:
+                    min_amount = min(sell_order.amount, order.amount)
+                    matching_price = sell_order.price
+                    print ("Transaction between " + sell_order.trader_id + " and " + order.trader_id + ", " + min_amount + " shares, " + matching_price + "$ per share")
+                    sell_order.amount = sell_order.amount - min_amount
+                    order.amount = order.amount - min_amount
+
+                    if sell_order.amount == 0:
+                        self._sell_orders.pop()
+                else:
+                    break
+            if order.amount > 0:
+                self._buy_orders.push(order)
+        else:
+            while self._buy_orders.size() > 0 and order.amount > 0:
+                buy_order = self._buy_orders.front()
+                if buy_order.price >= order.price:
+                    max_amount = min(buy_order.amount, order.amount)
+                    matching_price = buy_order.price
+                    print(
+                        "Transaction between " + order.trader_id + " and " + buy_order.trader_id + ", " + str(max_amount) + " shares, " + str(matching_price) + "$ per share")
+                    buy_order.amount = buy_order.amount - max_amount
+                    order.amount = order.amount - max_amount
+
+                    if buy_order.amount == 0:
+                        self._buy_orders.pop()
+                else:
+                    break
+            if order.amount > 0:
+                self._sell_orders.push(order)
+
+    def debug(self):
+        print ("Printing the buy queue")
+        print (self._buy_orders)
+        print("Printing the sell queue")
+        print(self._sell_orders)
+
+market = StockMarket()
+
+market.place(StockOrder("buy", "isa", 20, 4))
+market.place(StockOrder("buy", "ayse", 5, 5.5))
+market.place(StockOrder("buy", "ahmet", 5, 6))
+market.place(StockOrder("sell", "ali", 12, 5))
+
+# Transaction between ali and ahmet, 5 shares, 6$ per share
+# Transaction between ali and ayse, 5 shares, 5.5$ per share
+
+market.debug()
